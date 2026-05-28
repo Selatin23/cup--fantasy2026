@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import time
 
 # ─────────────────────────────────────────────
 # CONFIG
@@ -11,7 +10,6 @@ CSV_URL = (
     "2PACX-1vQb50AHXthD0sqfUUDaUoauxiUPZEJH2Dgf7PQg93K1ljiW6jKR8KMEK9rgKRfaEZJcNdb1NU4cJ76Q"
     "/pub?output=csv"
 )
-AUTO_REFRESH_SECONDS = 60   # обновление раз в минуту
 
 st.set_page_config(
     page_title="Syndicate Fantasy ЧМ-2026",
@@ -406,7 +404,7 @@ STAGE_LABELS = {
 # ─────────────────────────────────────────────
 # DATA LOADING
 # ─────────────────────────────────────────────
-@st.cache_data(ttl=AUTO_REFRESH_SECONDS, show_spinner=False)
+@st.cache_data(ttl=120, show_spinner=False)
 def load_data() -> pd.DataFrame:
     df = pd.read_csv(CSV_URL)
     df.columns = [c.strip().lower() for c in df.columns]
@@ -821,7 +819,7 @@ with st.sidebar:
         st.rerun()
     st.markdown(
         "<div style='color:#3d5c47;font-size:.75rem;text-align:center;padding-top:8px;'>"
-        f"Автообновление каждые {AUTO_REFRESH_SECONDS} сек</div>",
+        "Кэш обновляется каждые 2 мин</div>",
         unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
@@ -857,23 +855,6 @@ else:
     played_gws  = []
     bracket_ok  = False; bracket_err = err_msg
     bracket     = {}
-
-# ─────────────────────────────────────────────
-# AUTO-REFRESH via st.empty + time-based rerun
-# ─────────────────────────────────────────────
-# We track last-load time in session state; when the cache ttl expires
-# and the user is still on the page, trigger a silent rerun.
-if "last_load" not in st.session_state:
-    st.session_state["last_load"] = time.time()
-
-elapsed = time.time() - st.session_state["last_load"]
-remaining = max(0, AUTO_REFRESH_SECONDS - elapsed)
-
-# Auto rerun when cache is stale
-if elapsed >= AUTO_REFRESH_SECONDS:
-    st.session_state["last_load"] = time.time()
-    st.cache_data.clear()
-    st.rerun()
 
 # ─────────────────────────────────────────────
 # PROFILE PAGE (via query param ?profile=<id>)
@@ -989,9 +970,9 @@ elif "Групповой" in page:
             unsafe_allow_html=True)
 
         groups_sorted = sorted(gs["group_letter"].unique())
-        for row_start in range(0, len(groups_sorted), 3):
-            cols = st.columns(3)
-            for ci, g in enumerate(groups_sorted[row_start:row_start+3]):
+        for row_start in range(0, len(groups_sorted), 2):
+            cols = st.columns(2)
+            for ci, g in enumerate(groups_sorted[row_start:row_start+2]):
                 gdf = gs[gs["group_letter"]==g].copy()
                 with cols[ci]:
                     st.markdown(f"<div class='group-header'>Группа {g}</div>", unsafe_allow_html=True)
@@ -1481,12 +1462,11 @@ elif "Финансовый" in page:
             """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
-# FOOTER + auto-refresh countdown
+# FOOTER
 # ─────────────────────────────────────────────
-st.markdown(f"""
+st.markdown("""
 <div style='margin-top:48px;padding:16px;text-align:center;
             color:#1a2e22;font-size:.78rem;border-top:1px solid #111916;'>
-  Syndicate Fantasy ЧМ-2026 · Данные из Google Sheets ·
-  Следующее обновление через ~{int(remaining)} сек
+  Syndicate Fantasy ЧМ-2026 · Данные из Google Sheets
 </div>
 """, unsafe_allow_html=True)
