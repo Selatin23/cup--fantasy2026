@@ -34,7 +34,7 @@ st.markdown("""
   }
   section[data-testid="stSidebar"] * { color: #e6edf3 !important; }
 
-  /* ── radio nav — flexbox fix ── */
+  /* ── radio  — flexbox fix ── */
   div[data-testid="stSidebarContent"] .stRadio > div { gap: 4px; }
   div[data-testid="stSidebarContent"] .stRadio label {
     display: flex !important;
@@ -809,7 +809,7 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     page = st.radio(
-        "nav", ["🏠  Главная и Регламент","📊  Групповой этап",
+        "", ["🏠  Главная и Регламент","📊  Групповой этап",
                 "🏆  Сетка Кубка (Плей-офф)","💰  Призовой фонд и Награды",
                 "🔬  Аналитика групп","💳  Финансовый отчёт"],
         label_visibility="collapsed",
@@ -1477,6 +1477,6 @@ elif "Финансовый" in page:
 st.markdown("""
 <div style='margin-top:48px;padding:16px;text-align:center;
             color:#1a2e22;font-size:.78rem;border-top:1px solid #111916;'>
-  Syndicate Fantasy ЧМ-2026 · Данные из Google Sheets
+   · Syndicate Fantasy ЧМ-2026 · 
 </div>
 """, unsafe_allow_html=True)
