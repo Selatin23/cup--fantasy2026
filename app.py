@@ -520,11 +520,10 @@ def calc_mvp_earnings(df: pd.DataFrame) -> pd.DataFrame:
                          "gw_detail": {}}  # gw -> earned in that gw
 
     for gw in GW_COLS:
-        col = df[["manager_id", "manager_name", gw]].dropna(subset=[gw])
-        col = col[col[gw] > 0]          # ignore gws with all zeros / no data
-        if col.empty:
-            continue
+        col = df[["manager_id", "manager_name", gw]]
         max_score = col[gw].max()
+        if max_score <= 0:          # gw not played yet — all zeros or empty
+            continue
         winners   = col[col[gw] == max_score]
         n_winners = len(winners)
         share     = MVP_PRIZE / n_winners
@@ -842,7 +841,7 @@ if data_ok:
     gs          = get_group_stage(df)
     thirds      = get_third_place_ranking(gs)
     thirds_top8 = set(thirds.head(8)["manager_id"].tolist())
-    played_gws  = [g for g in GW_COLS if df[g].notna().any()]
+    played_gws  = [g for g in GW_COLS if df[g].sum() > 0]
     try:
         qualifiers  = get_playoff_qualifiers(gs)
         r16_matchups= build_r16_matchups(qualifiers)
@@ -1099,10 +1098,11 @@ elif "Призовой" in page:
         html = "<table class='prize-table'>"
         html += "<tr><th>Тур</th><th>MVP — Лучший менеджер</th><th>Очки</th><th>Приз</th></tr>"
         for gw in GW_COLS:
-            col_data = df[["manager_name",gw]].dropna(subset=[gw])
-            if col_data.empty:
+            col_data = df[["manager_name",gw]]
+            max_score = col_data[gw].max()
+            if max_score <= 0:
                 html += (f"<tr><td class='neon'>{GW_LABELS[gw]}</td>"
-                         f"<td><span class='waiting'>⏳ Ожидание</span></td>"
+                         f"<td><span class='waiting'>⏳ Ожидание старта тура</span></td>"
                          f"<td>–</td><td class='gold'>20 000 ₸</td></tr>")
             else:
                 mp = col_data[gw].max()
@@ -1427,14 +1427,13 @@ elif "Финансовый" in page:
             html_gw = "<table class='gw-detail-table'>"
             html_gw += "<tr><th>Тур</th><th>MVP</th><th>Очки</th><th>Приз</th></tr>"
             for gw in GW_COLS:
-                col_data = df[["manager_id","manager_name",gw]].dropna(subset=[gw])
-                col_data = col_data[col_data[gw] > 0]
-                if col_data.empty:
+                col_data = df[["manager_id","manager_name",gw]]
+                max_sc   = col_data[gw].max()
+                if max_sc <= 0:
                     html_gw += (f"<tr><td class='neon'>{GW_LABELS[gw]}</td>"
-                                f"<td><span class='waiting'>⏳</span></td>"
+                                f"<td><span class='waiting'>⏳ Ожидание старта тура</span></td>"
                                 f"<td>–</td><td style='color:#3d444d;'>20 000 ₸</td></tr>")
                     continue
-                max_sc  = col_data[gw].max()
                 winners = col_data[col_data[gw] == max_sc]
                 n_w     = len(winners)
                 share   = 20_000 // n_w
