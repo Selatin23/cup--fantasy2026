@@ -809,7 +809,7 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     page = st.radio(
-        "", ["🏠  Главная и Регламент","📊  Групповой этап",
+        "nav", ["🏠  Главная и Регламент","📊  Групповой этап",
                 "🏆  Сетка Кубка (Плей-офф)","💰  Призовой фонд и Награды",
                 "🔬  Аналитика групп","💳  Финансовый отчёт"],
         label_visibility="collapsed",
@@ -842,18 +842,25 @@ if data_ok:
     thirds      = get_third_place_ranking(gs)
     thirds_top8 = set(thirds.head(8)["manager_id"].tolist())
     played_gws  = [g for g in GW_COLS if df[g].sum() > 0]
-    try:
-        qualifiers  = get_playoff_qualifiers(gs)
-        r16_matchups= build_r16_matchups(qualifiers)
-        bracket     = simulate_bracket(gs, r16_matchups)
-        bracket_ok  = True
-    except Exception as e:
-        bracket_ok = False; bracket_err = str(e)
-        bracket = {}
+    group_stage_done = df["gw3"].sum() > 0   # групповой этап завершён только если gw3 сыгран
+    if group_stage_done:
+        try:
+            qualifiers   = get_playoff_qualifiers(gs)
+            r16_matchups = build_r16_matchups(qualifiers)
+            bracket      = simulate_bracket(gs, r16_matchups)
+            bracket_ok   = True
+        except Exception as e:
+            bracket_ok = False; bracket_err = str(e)
+            bracket = {}
+    else:
+        bracket_ok  = False
+        bracket_err = ""   # не ошибка — просто ещё рано
+        bracket     = {}
 else:
     gs = thirds = pd.DataFrame()
     thirds_top8 = set()
     played_gws  = []
+    group_stage_done = False
     bracket_ok  = False; bracket_err = err_msg
     bracket     = {}
 
@@ -1022,6 +1029,8 @@ elif "Плей-офф" in page or "Кубка" in page:
     st.markdown("<div class='sec-title'>🏆 Сетка Кубка — Плей-офф</div>", unsafe_allow_html=True)
     if not data_ok:
         st.error(f"⚠️ {err_msg}")
+    elif not group_stage_done:
+        st.info("⏳ Сетка плей-офф будет сформирована автоматически после завершения 3-го тура группового этапа.")
     elif not bracket_ok:
         st.error(f"⚠️ Ошибка построения сетки: `{bracket_err}`")
     else:
