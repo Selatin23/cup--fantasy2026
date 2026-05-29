@@ -808,7 +808,7 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     page = st.radio(
-        "",     ["🏠  Главная и Регламент","📊  Групповой этап",
+        "nav", ["🏠  Главная и Регламент","📊  Групповой этап",
                 "🏆  Сетка Кубка (Плей-офф)","💰  Призовой фонд и Награды",
                 "🔬  Аналитика групп","💳  Финансовый отчёт"],
         label_visibility="collapsed",
@@ -1467,6 +1467,6 @@ elif "Финансовый" in page:
 st.markdown("""
 <div style='margin-top:48px;padding:16px;text-align:center;
             color:#1a2e22;font-size:.78rem;border-top:1px solid #111916;'>
-  · Syndicate Fantasy ЧМ-2026 · 
+  Syndicate Fantasy ЧМ-2026 · Данные из Google Sheets
 </div>
 """, unsafe_allow_html=True)
