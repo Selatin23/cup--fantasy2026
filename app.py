@@ -410,6 +410,8 @@ def load_data() -> pd.DataFrame:
     df.columns = [c.strip().lower() for c in df.columns]
     for col in GW_COLS:
         df[col] = pd.to_numeric(df.get(col, np.nan), errors="coerce")
+    # Fill missing scores with 0 so downstream .astype(int) never hits NaN
+    df[GW_COLS] = df[GW_COLS].fillna(0)
     df["group_letter"] = df["group_letter"].str.strip().str.upper()
     df["manager_name"]  = df["manager_name"].str.strip()
     return df
@@ -419,10 +421,10 @@ def load_data() -> pd.DataFrame:
 # ─────────────────────────────────────────────
 def get_group_stage(df: pd.DataFrame) -> pd.DataFrame:
     d = df.copy()
-    d["group_pts"] = d[["gw1","gw2","gw3"]].sum(axis=1, min_count=1)
+    d["group_pts"] = d[["gw1","gw2","gw3"]].sum(axis=1)
     d = d.sort_values(["group_letter","group_pts"], ascending=[True,False])
     d["rank"] = d.groupby("group_letter")["group_pts"].rank(
-        method="min", ascending=False).astype(int)
+        method="min", ascending=False).fillna(1).astype(int)
     return d
 
 def get_third_place_ranking(gs: pd.DataFrame) -> pd.DataFrame:
@@ -654,7 +656,7 @@ def page_profile(df: pd.DataFrame, gs: pd.DataFrame,
 
     # overall rank
     overall = df.copy()
-    overall["total_pts"] = overall[played_gws].sum(axis=1, min_count=1)
+    overall["total_pts"] = overall[played_gws].sum(axis=1)
     overall = overall.sort_values("total_pts", ascending=False).reset_index(drop=True)
     overall["ov_rank"] = overall.index + 1
     ov_rank = overall.loc[overall["manager_id"]==manager_id, "ov_rank"].values
@@ -1118,7 +1120,7 @@ elif "Призовой" in page:
         classic_prizes = {1:"75 000 ₸", 2:"40 000 ₸", 3:"20 000 ₸"}
         if played_gws:
             overall = df.copy()
-            overall["total_pts"] = overall[played_gws].sum(axis=1, min_count=1)
+            overall["total_pts"] = overall[played_gws].sum(axis=1)
             overall = overall.sort_values("total_pts", ascending=False).reset_index(drop=True)
             html2 = "<table class='prize-table'><tr><th>#</th><th>Менеджер</th><th>Группа</th>"
             for g in played_gws: html2 += f"<th>{GW_LABELS[g]}</th>"
