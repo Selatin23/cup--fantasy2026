@@ -432,21 +432,57 @@ def get_third_place_ranking(gs: pd.DataFrame) -> pd.DataFrame:
     t["third_rank"] = t.index + 1
     return t
 
-def get_playoff_qualifiers(gs: pd.DataFrame) -> pd.DataFrame:
-    top2   = gs[gs["rank"] <= 2].copy()
-    thirds = get_third_place_ranking(gs)
-    t8     = thirds.head(8).copy(); t8["rank"] = 3
-    q = pd.concat([top2, t8], ignore_index=True)
-    q["seed"] = 0
-    groups = sorted(q["group_letter"].unique())
+def get_playoff_qualifiers(df):
+    """
+    Определяет 32 команды, вышедшие в плей-офф, распределяя сиды по справедливости:
+    - Сиды 1-12: Победители групп, отсортированные по убыванию очков за 3 тура.
+    - Сиды 13-24: Вторые места групп, отсортированные по убыванию очков за 3 тура.
+    - Сиды 25-32: Топ-8 команд с третьих мест, отсортированные по убыванию очков.
+    """
+    groups = df['group_letter'].unique()
+    
+    first_places = []
+    second_places = []
+    third_places = []
+    
+    # Собираем данные по каждой группе
+    for g in groups:
+        g_df = df[df['group_letter'] == g].copy()
+        g_df['total_gs'] = g_df['gw1'] + g_df['gw2'] + g_df['gw3']
+        g_df = g_df.sort_values(by='total_gs', ascending=False).reset_index(drop=True)
+        
+        if len(g_df) >= 1:
+            first_places.append({'manager_id': g_df.loc[0, 'manager_id'], 'manager_name': g_df.loc[0, 'manager_name'], 'points': g_df.loc[0, 'total_gs']})
+        if len(g_df) >= 2:
+            second_places.append({'manager_id': g_df.loc[1, 'manager_id'], 'manager_name': g_df.loc[1, 'manager_name'], 'points': g_df.loc[1, 'total_gs']})
+        if len(g_df) >= 3:
+            third_places.append({'manager_id': g_df.loc[2, 'manager_id'], 'manager_name': g_df.loc[2, 'manager_name'], 'points': g_df.loc[2, 'total_gs']})
+
+    # Конвертируем в DataFrame для удобной сортировки по очкам
+    df_first = pd.DataFrame(first_places).sort_values(by='points', ascending=False).reset_index(drop=True)
+    df_second = pd.DataFrame(second_places).sort_values(by='points', ascending=False).reset_index(drop=True)
+    df_third = pd.DataFrame(third_places).sort_values(by='points', ascending=False).reset_index(drop=True)
+
+    qualifiers = []
     seed = 1
-    for rk in [1, 2]:
-        for g in groups:
-            mask = (q["group_letter"]==g) & (q["rank"]==rk)
-            q.loc[mask,"seed"] = seed; seed += 1
-    for i, idx in enumerate(q.loc[q["rank"]==3].index):
-        q.loc[idx,"seed"] = 25 + i
-    return q.sort_values("seed").reset_index(drop=True)
+    
+    # 1. Присваиваем сиды 1-12 лучшим первым местам
+    for _, row in df_first.iterrows():
+        qualifiers.append({'seed': seed, 'manager_id': row['manager_id'], 'manager_name': row['manager_name']})
+        seed += 1
+        
+    # 2. Присваиваем сиды 13-24 лучшим вторым местам
+    for _, row in df_second.iterrows():
+        qualifiers.append({'seed': seed, 'manager_id': row['manager_id'], 'manager_name': row['manager_name']})
+        seed += 1
+        
+    # 3. Присваиваем сиды 25-32 только ТОП-8 лучшим третьим местам
+    df_top8_third = df_third.head(8)
+    for _, row in df_top8_third.iterrows():
+        qualifiers.append({'seed': seed, 'manager_id': row['manager_id'], 'manager_name': row['manager_name']})
+        seed += 1
+        
+    return qualifiers
 
 def build_r16_matchups(q: pd.DataFrame) -> list[dict]:
     p = q.sort_values("seed")["manager_id"].tolist()
