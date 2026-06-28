@@ -476,9 +476,25 @@ def get_playoff_qualifiers(gs: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)  # всегда возвращаем DataFrame, не list
 
 def build_r16_matchups(q: pd.DataFrame) -> list[dict]:
-    p = q.sort_values("seed")["manager_id"].tolist()
-    n = len(p)
-    return [{"p1_id": p[i], "p2_id": p[n-1-i]} for i in range(n//2)]
+    """
+    Классическая олимпийская/теннисная сетка 32 участника.
+    Сиды 1 и 2 разведены в противоположные концы и могут встретиться
+    только в финале. Порядок пар хардкодирован по стандарту ATP/FIFA.
+    """
+    # seed -> manager_id
+    seed_to_id = q.set_index("seed")["manager_id"].to_dict()
+
+    BRACKET_ORDER = [
+        ( 1, 32), (16, 17), ( 9, 24), ( 8, 25),
+        ( 5, 28), (12, 21), (13, 20), ( 4, 29),
+        ( 3, 30), (14, 19), (11, 22), ( 6, 27),
+        ( 7, 26), (10, 23), (15, 18), ( 2, 31),
+    ]
+
+    return [
+        {"p1_id": seed_to_id[s1], "p2_id": seed_to_id[s2]}
+        for s1, s2 in BRACKET_ORDER
+    ]
 
 def score_val(df, mid, gw):
     r = df[df["manager_id"]==mid]
